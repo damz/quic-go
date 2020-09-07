@@ -42,6 +42,7 @@ const (
 	activeConnectionIDLimitParameterID         transportParameterID = 0xe
 	initialSourceConnectionIDParameterID       transportParameterID = 0xf
 	retrySourceConnectionIDParameterID         transportParameterID = 0x10
+	maxDatagramFrameSizeParameterID            transportParameterID = 0x20
 )
 
 // PreferredAddress is the value encoding in the preferred_address transport parameter
@@ -81,6 +82,8 @@ type TransportParameters struct {
 
 	StatelessResetToken     *protocol.StatelessResetToken
 	ActiveConnectionIDLimit uint64
+
+	MaxDatagramFrameSize protocol.ByteCount
 }
 
 // Unmarshal the transport parameters
@@ -132,7 +135,8 @@ func (p *TransportParameters) unmarshal(r *bytes.Reader, sentBy protocol.Perspec
 			initialMaxStreamsUniParameterID,
 			maxIdleTimeoutParameterID,
 			maxUDPPayloadSizeParameterID,
-			activeConnectionIDLimitParameterID:
+			activeConnectionIDLimitParameterID,
+			maxDatagramFrameSizeParameterID:
 			if err := p.readNumericTransportParameter(r, paramID, int(paramLen)); err != nil {
 				return err
 			}
@@ -307,6 +311,8 @@ func (p *TransportParameters) readNumericTransportParameter(
 		p.MaxAckDelay = maxAckDelay
 	case activeConnectionIDLimitParameterID:
 		p.ActiveConnectionIDLimit = val
+	case maxDatagramFrameSizeParameterID:
+		p.MaxDatagramFrameSize = protocol.ByteCount(val)
 	default:
 		return fmt.Errorf("TransportParameter BUG: transport parameter %d not found", paramID)
 	}
@@ -393,6 +399,10 @@ func (p *TransportParameters) Marshal(pers protocol.Perspective) []byte {
 		utils.WriteVarInt(b, uint64(p.RetrySourceConnectionID.Len()))
 		b.Write(p.RetrySourceConnectionID.Bytes())
 	}
+
+	if p.MaxDatagramFrameSize > 0 {
+		p.marshalVarintParam(b, maxDatagramFrameSizeParameterID, uint64(p.MaxDatagramFrameSize))
+	}
 	return b.Bytes()
 }
 
@@ -464,6 +474,10 @@ func (p *TransportParameters) String() string {
 	if p.StatelessResetToken != nil { // the client never sends a stateless reset token
 		logString += ", StatelessResetToken: %#x"
 		logParams = append(logParams, *p.StatelessResetToken)
+	}
+	if p.MaxDatagramFrameSize > 0 {
+		logString += ", MaxDatagramFrameSize: %d"
+		logParams = append(logParams, p.MaxDatagramFrameSize)
 	}
 	logString += "}"
 	return fmt.Sprintf(logString, logParams...)

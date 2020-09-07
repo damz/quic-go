@@ -1,6 +1,7 @@
 package quic
 
 import (
+	"container/list"
 	"sync"
 
 	"github.com/lucas-clemente/quic-go/internal/ackhandler"
@@ -17,6 +18,8 @@ type framer interface {
 
 	AddActiveStream(protocol.StreamID)
 	AppendStreamFrames([]ackhandler.Frame, protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount)
+
+	QueueDatagramFrame(frame ackhandler.Frame, onWritten func())
 }
 
 type framerI struct {
@@ -27,6 +30,8 @@ type framerI struct {
 
 	activeStreams map[protocol.StreamID]struct{}
 	streamQueue   []protocol.StreamID
+
+	datagramQueue list.List
 
 	controlFrameMutex sync.Mutex
 	controlFrames     []wire.Frame
@@ -47,7 +52,7 @@ func newFramer(
 
 func (f *framerI) HasData() bool {
 	f.mutex.Lock()
-	hasData := len(f.streamQueue) > 0
+	hasData := len(f.streamQueue) > 0 || f.datagramQueue.Len() > 0
 	f.mutex.Unlock()
 	if hasData {
 		return true
@@ -90,10 +95,40 @@ func (f *framerI) AddActiveStream(id protocol.StreamID) {
 	f.mutex.Unlock()
 }
 
+type datagramFrameItem struct {
+	frame     ackhandler.Frame
+	onWritten func()
+}
+
+func (f *framerI) QueueDatagramFrame(frame ackhandler.Frame, onWritten func()) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	f.datagramQueue.PushBack(datagramFrameItem{
+		frame:     frame,
+		onWritten: onWritten,
+	})
+}
+
 func (f *framerI) AppendStreamFrames(frames []ackhandler.Frame, maxLen protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount) {
 	var length protocol.ByteCount
 	var lastFrame *ackhandler.Frame
 	f.mutex.Lock()
+	// pop DATAGRAM frames until the packet is full
+	for f.datagramQueue.Len() > 0 {
+		elem := f.datagramQueue.Front()
+		frameItem := elem.Value.(datagramFrameItem)
+		frameLength := frameItem.frame.Length(f.version)
+		if maxLen-length < frameLength {
+			break
+		}
+
+		f.datagramQueue.Remove(elem)
+		frameItem.onWritten()
+		frames = append(frames, frameItem.frame)
+		length += frameLength
+	}
+
 	// pop STREAM frames, until less than MinStreamFrameSize bytes are left in the packet
 	numActiveStreams := len(f.streamQueue)
 	for i := 0; i < numActiveStreams; i++ {

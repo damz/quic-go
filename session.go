@@ -205,6 +205,8 @@ type session struct {
 
 	traceCallback func(quictrace.Event)
 
+	datagramQueue chan []byte
+
 	logID  string
 	tracer logging.ConnectionTracer
 	logger utils.Logger
@@ -294,6 +296,7 @@ var newSession = func(
 		ActiveConnectionIDLimit:         protocol.MaxActiveConnectionIDs,
 		InitialSourceConnectionID:       srcConnID,
 		RetrySourceConnectionID:         retrySrcConnID,
+		MaxDatagramFrameSize:            s.config.MaxDatagramFrameSize,
 	}
 	if s.tracer != nil {
 		s.tracer.SentTransportParameters(params)
@@ -413,6 +416,7 @@ var newClientSession = func(
 		DisableActiveMigration:         true,
 		ActiveConnectionIDLimit:        protocol.MaxActiveConnectionIDs,
 		InitialSourceConnectionID:      srcConnID,
+		MaxDatagramFrameSize:           s.config.MaxDatagramFrameSize,
 	}
 	if s.tracer != nil {
 		s.tracer.SentTransportParameters(params)
@@ -506,6 +510,10 @@ func (s *session) preSetup() {
 		s.traceCallback = func(ev quictrace.Event) {
 			s.config.QuicTracer.Trace(s.origDestConnID, ev)
 		}
+	}
+
+	if s.config.MaxDatagramFrameSize > 0 {
+		s.datagramQueue = make(chan []byte)
 	}
 }
 
@@ -649,6 +657,14 @@ type sessionCongestionState struct {
 
 func (ss *sessionCongestionState) TimeUntilSend() time.Time {
 	return ss.s.sentPacketHandler.TimeUntilSend()
+}
+
+func (s *session) ReadDatagram(data []byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (s *session) WriteDatagram(data []byte) (int, error) {
+	return 0, io.EOF
 }
 
 // Time when the next keep-alive packet should be sent.
@@ -1109,6 +1125,8 @@ func (s *session) handleFrame(f wire.Frame, encLevel protocol.EncryptionLevel, d
 		err = s.handleRetireConnectionIDFrame(frame, destConnID)
 	case *wire.HandshakeDoneFrame:
 		err = s.handleHandshakeDoneFrame()
+	case *wire.DatagramFrame:
+		err = s.handleDatagramFrame(frame)
 	default:
 		err = fmt.Errorf("unexpected frame type: %s", reflect.ValueOf(&frame).Elem().Type().Name())
 	}
@@ -1245,6 +1263,14 @@ func (s *session) handleAckFrame(frame *wire.AckFrame, encLevel protocol.Encrypt
 	return nil
 }
 
+func (s *session) handleDatagramFrame(f *wire.DatagramFrame) error {
+	if f.Length(s.version) > s.config.MaxDatagramFrameSize {
+		return qerr.NewError(qerr.ProtocolViolation, "DATAGRAM frame too large")
+	}
+	s.datagramQueue <- append([]byte(nil), f.Data...)
+	return nil
+}
+
 // closeLocal closes the session and send a CONNECTION_CLOSE containing the error
 func (s *session) closeLocal(e error) {
 	s.closeOnce.Do(func() {
@@ -1307,6 +1333,9 @@ func (s *session) handleCloseError(closeErr closeError) {
 
 	s.streamsMap.CloseWithError(quicErr)
 	s.connIDManager.Close()
+	if s.datagramQueue != nil {
+		close(s.datagramQueue)
+	}
 
 	if s.tracer != nil {
 		// timeout errors are logged as soon as they occur (to distinguish between handshake and idle timeouts)
@@ -1747,6 +1776,38 @@ func (s *session) onStreamCompleted(id protocol.StreamID) {
 	if err := s.streamsMap.DeleteStream(id); err != nil {
 		s.closeLocal(err)
 	}
+}
+
+func (s *session) SendDatagram(data []byte) error {
+	maxPacketSize := s.peerParams.MaxDatagramFrameSize
+
+	f := &wire.DatagramFrame{DataLenPresent: true}
+	f.Data = append([]byte(nil), data...)
+	if f.Length(s.version) > maxPacketSize {
+		return errors.New("message too large")
+	}
+
+	c := make(chan struct{})
+	onWritten := func() {
+		close(c)
+	}
+	s.framer.QueueDatagramFrame(ackhandler.Frame{
+		Frame:  f,
+		OnLost: func(wire.Frame) {},
+	}, onWritten)
+	s.scheduleSending()
+
+	<-c
+	return nil
+}
+
+func (s *session) ReceiveDatagram(data []byte) (int, error) {
+	frame := <-s.datagramQueue
+	if frame == nil {
+		return 0, io.EOF
+	}
+	copy(data, frame)
+	return len(frame), nil
 }
 
 func (s *session) LocalAddr() net.Addr {

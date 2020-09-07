@@ -74,6 +74,8 @@ var _ = Describe("Config", func() {
 				f.Set(reflect.ValueOf(quictrace.NewTracer()))
 			case "Tracer":
 				f.Set(reflect.ValueOf(mocks.NewMockTracer(mockCtrl)))
+			case "MaxDatagramFrameSize":
+				f.Set(reflect.ValueOf(protocol.ByteCount(789)))
 			default:
 				Fail(fmt.Sprintf("all fields must be accounted for, but saw unknown field %q", fn))
 			}

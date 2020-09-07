@@ -81,6 +81,20 @@ func (mr *MockEarlySessionMockRecorder) CloseWithError(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseWithError", reflect.TypeOf((*MockEarlySession)(nil).CloseWithError), arg0, arg1)
 }
 
+// CongestionState mocks base method
+func (m *MockEarlySession) CongestionState() quic.SessionCongestionState {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CongestionState")
+	ret0, _ := ret[0].(quic.SessionCongestionState)
+	return ret0
+}
+
+// CongestionState indicates an expected call of CongestionState
+func (mr *MockEarlySessionMockRecorder) CongestionState() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CongestionState", reflect.TypeOf((*MockEarlySession)(nil).CongestionState))
+}
+
 // ConnectionState mocks base method
 func (m *MockEarlySession) ConnectionState() quic.ConnectionState {
 	m.ctrl.T.Helper()
@@ -197,6 +211,21 @@ func (mr *MockEarlySessionMockRecorder) OpenUniStreamSync(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenUniStreamSync", reflect.TypeOf((*MockEarlySession)(nil).OpenUniStreamSync), arg0)
 }
 
+// ReceiveDatagram mocks base method
+func (m *MockEarlySession) ReceiveDatagram(arg0 []byte) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReceiveDatagram", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReceiveDatagram indicates an expected call of ReceiveDatagram
+func (mr *MockEarlySessionMockRecorder) ReceiveDatagram(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveDatagram", reflect.TypeOf((*MockEarlySession)(nil).ReceiveDatagram), arg0)
+}
+
 // RemoteAddr mocks base method
 func (m *MockEarlySession) RemoteAddr() net.Addr {
 	m.ctrl.T.Helper()
@@ -209,4 +238,18 @@ func (m *MockEarlySession) RemoteAddr() net.Addr {
 func (mr *MockEarlySessionMockRecorder) RemoteAddr() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAddr", reflect.TypeOf((*MockEarlySession)(nil).RemoteAddr))
+}
+
+// SendDatagram mocks base method
+func (m *MockEarlySession) SendDatagram(arg0 []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendDatagram", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendDatagram indicates an expected call of SendDatagram
+func (mr *MockEarlySessionMockRecorder) SendDatagram(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDatagram", reflect.TypeOf((*MockEarlySession)(nil).SendDatagram), arg0)
 }

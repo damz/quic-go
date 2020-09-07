@@ -224,6 +224,21 @@ func (mr *MockQuicSessionMockRecorder) OpenUniStreamSync(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenUniStreamSync", reflect.TypeOf((*MockQuicSession)(nil).OpenUniStreamSync), arg0)
 }
 
+// ReceiveDatagram mocks base method
+func (m *MockQuicSession) ReceiveDatagram(arg0 []byte) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReceiveDatagram", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReceiveDatagram indicates an expected call of ReceiveDatagram
+func (mr *MockQuicSessionMockRecorder) ReceiveDatagram(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveDatagram", reflect.TypeOf((*MockQuicSession)(nil).ReceiveDatagram), arg0)
+}
+
 // RemoteAddr mocks base method
 func (m *MockQuicSession) RemoteAddr() net.Addr {
 	m.ctrl.T.Helper()
@@ -236,6 +251,20 @@ func (m *MockQuicSession) RemoteAddr() net.Addr {
 func (mr *MockQuicSessionMockRecorder) RemoteAddr() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoteAddr", reflect.TypeOf((*MockQuicSession)(nil).RemoteAddr))
+}
+
+// SendDatagram mocks base method
+func (m *MockQuicSession) SendDatagram(arg0 []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendDatagram", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendDatagram indicates an expected call of SendDatagram
+func (mr *MockQuicSessionMockRecorder) SendDatagram(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDatagram", reflect.TypeOf((*MockQuicSession)(nil).SendDatagram), arg0)
 }
 
 // destroy mocks base method

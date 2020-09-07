@@ -187,6 +187,10 @@ type Session interface {
 	// CongestionState returns details about the state of congestion control of
 	// the QUIC connection.
 	CongestionState() SessionCongestionState
+	// ReceiveDatagram reads a datagram frame from the underlying QUIC connection.
+	ReceiveDatagram(b []byte) (int, error)
+	// SendDatagram writes a datagram frame to the underlying QUIC connection.
+	SendDatagram(b []byte) error
 }
 
 type SessionCongestionState interface {
@@ -267,6 +271,12 @@ type Config struct {
 	// Warning: Experimental. This API should not be considered stable and will change soon.
 	QuicTracer quictrace.Tracer
 	Tracer     logging.Tracer
+	// MaxDatagramFrameSize is the maximum size of DATAGRAM frames that the QUIC connection
+	// will accept.
+	// If not set, defaults to 0, which means DATAGRAM frames are not supported.
+	// If set to a positive value, the client must repeatively call the ReceiveDatagram()
+	// method on the Session. Not doing so would block the receive loop.
+	MaxDatagramFrameSize protocol.ByteCount
 }
 
 // A Listener for incoming QUIC connections

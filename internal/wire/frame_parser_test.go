@@ -280,6 +280,15 @@ var _ = Describe("Frame parsing", func() {
 		Expect(frame).To(Equal(f))
 	})
 
+	It("unpacks DATAGRAM frames", func() {
+		f := &DatagramFrame{Data: []byte("foobar")}
+		buf := &bytes.Buffer{}
+		Expect(f.Write(buf, versionIETFFrames)).To(Succeed())
+		frame, err := parser.ParseNext(bytes.NewReader(buf.Bytes()), protocol.Encryption1RTT)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(frame).To(Equal(f))
+	})
+
 	It("errors on invalid type", func() {
 		_, err := parser.ParseNext(bytes.NewReader([]byte{0x42}), protocol.Encryption1RTT)
 		Expect(err).To(MatchError("FRAME_ENCODING_ERROR (frame type: 0x42): unknown frame type"))
