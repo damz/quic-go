@@ -184,6 +184,13 @@ type Session interface {
 	// It blocks until the handshake completes.
 	// Warning: This API should not be considered stable and might change soon.
 	ConnectionState() ConnectionState
+	// CongestionState returns details about the state of congestion control of
+	// the QUIC connection.
+	CongestionState() SessionCongestionState
+}
+
+type SessionCongestionState interface {
+	TimeUntilSend() time.Time
 }
 
 // An EarlySession is a session that is handshaking.

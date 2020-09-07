@@ -639,6 +639,18 @@ func (s *session) ConnectionState() ConnectionState {
 	return s.cryptoStreamHandler.ConnectionState()
 }
 
+func (s *session) CongestionState() SessionCongestionState {
+	return &sessionCongestionState{s}
+}
+
+type sessionCongestionState struct {
+	s *session
+}
+
+func (ss *sessionCongestionState) TimeUntilSend() time.Time {
+	return ss.s.sentPacketHandler.TimeUntilSend()
+}
+
 // Time when the next keep-alive packet should be sent.
 // It returns a zero time if no keep-alive should be sent.
 func (s *session) nextKeepAliveTime() time.Time {

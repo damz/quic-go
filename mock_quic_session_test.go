@@ -80,6 +80,20 @@ func (mr *MockQuicSessionMockRecorder) CloseWithError(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseWithError", reflect.TypeOf((*MockQuicSession)(nil).CloseWithError), arg0, arg1)
 }
 
+// CongestionState mocks base method
+func (m *MockQuicSession) CongestionState() SessionCongestionState {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CongestionState")
+	ret0, _ := ret[0].(SessionCongestionState)
+	return ret0
+}
+
+// CongestionState indicates an expected call of CongestionState
+func (mr *MockQuicSessionMockRecorder) CongestionState() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CongestionState", reflect.TypeOf((*MockQuicSession)(nil).CongestionState))
+}
+
 // ConnectionState mocks base method
 func (m *MockQuicSession) ConnectionState() ConnectionState {
 	m.ctrl.T.Helper()
